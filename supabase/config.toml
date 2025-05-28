@@ -1,0 +1,19 @@
+
+project_id = "wgqvihhdxutfjuptnyrg"
+
+[functions.send-sms]
+verify_jwt = true
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.create-checkout-session]
+verify_jwt = true
+
+[functions.customer-face-recognition]
+verify_jwt = false # Allows requests to reach the function without a JWT.
+                   # The function itself should handle auth if needed.
+
+[functions.face-recognition-v3]
+verify_jwt = false # Allows unauthenticated calls for face recognition v3
+

@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 15%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 252 52% 56%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 217 33% 23%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 24 91% 57%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 32% 17%;
+    --input: 217 32% 17%;
+    --ring: 212 92% 54%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 252 52% 56%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 24 91% 57%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 32% 17%;
+    --sidebar-ring: 252 52% 56%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-game-background text-game-foreground;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-game-secondary bg-opacity-30 rounded-lg;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-game-primary bg-opacity-50 rounded-lg hover:bg-opacity-70 transition-all;
+  }
+}
+
+@layer components {
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  .game-card {
+    @apply bg-card rounded-lg border border-border p-4 shadow-md;
+  }
+  
+  .highlight-bar {
+    @apply h-1 w-20 bg-game-accent rounded-full mb-4;
+    background: linear-gradient(90deg, var(--game-accent) 0%, var(--game-primary) 100%);
+  }
+  
+  .stat-value {
+    @apply text-2xl font-bold;
+  }
+  
+  .stat-label {
+    @apply text-muted-foreground text-sm;
+  }
+}
