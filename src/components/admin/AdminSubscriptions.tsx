@@ -112,7 +112,7 @@ const AdminSubscriptions = () => {
                 ? "$199"
                 : sub.plan_id === "enterprise"
                 ? "$999"
-                : "$399",
+                : "$300",
             planName: planName,
           };
         })
@@ -333,7 +333,7 @@ const AdminSubscriptions = () => {
                     <TableCell>{getStatusBadge(sub.status)}</TableCell>
                     <TableCell>{sub.billingCycle || "Monthly"}</TableCell>
                     <TableCell>{formatDate(sub.end_date)}</TableCell>
-                    <TableCell>{sub.amount || "$399"}</TableCell>
+                    <TableCell>{sub.amount || "$300"}</TableCell>
                     <TableCell>
                       <Button variant="ghost" size="sm">
                         Edit

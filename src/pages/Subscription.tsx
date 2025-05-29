@@ -1,13 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { CheckIcon, Loader2, AlertCircle } from 'lucide-react';
-import PageLayout from '@/components/layout/PageLayout';
+import React, { useState, useEffect } from "react";
+import { CheckIcon, Loader2, AlertCircle } from "lucide-react";
+import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { useAuth } from '@/contexts/AuthContext';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from "@/contexts/AuthContext";
+import { useLocation, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const SubscriptionFeatures = [
   "Unlimited machines management",
@@ -19,7 +26,7 @@ const SubscriptionFeatures = [
   "User role management",
   "Marketing campaign tools",
   "Bonus and loyalty program",
-  "Premium support"
+  "Premium support",
 ];
 
 const Subscription: React.FC = () => {
@@ -29,46 +36,46 @@ const Subscription: React.FC = () => {
   const [isLoadingSub, setIsLoadingSub] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
-  
+
   // Extract query parameters for success/canceled messages
   const queryParams = new URLSearchParams(location.search);
-  const isSuccess = queryParams.get('success') === 'true';
-  const isCanceled = queryParams.get('canceled') === 'true';
-  
+  const isSuccess = queryParams.get("success") === "true";
+  const isCanceled = queryParams.get("canceled") === "true";
+
   useEffect(() => {
     if (isSuccess) {
       toast.success("Subscription successful! Your plan is now active.");
       // Clear query parameters after showing toast, without redirecting away
-      navigate('/subscription', { replace: true });
+      navigate("/subscription", { replace: true });
     } else if (isCanceled) {
       toast.error("Subscription process was canceled.");
       // Clear query parameters after showing toast, without redirecting away
-      navigate('/subscription', { replace: true });
+      navigate("/subscription", { replace: true });
     }
   }, [isSuccess, isCanceled, navigate]);
-  
+
   useEffect(() => {
     if (currentUser?.id) {
       fetchSubscriptionData();
 
       // Set up real-time subscription to user_subscriptions table
       const channel = supabase
-        .channel('user_subscriptions_changes')
+        .channel("user_subscriptions_changes")
         .on(
-          'postgres_changes',
-          { 
-            event: '*', 
-            schema: 'public', 
-            table: 'user_subscriptions',
-            filter: `user_id=eq.${currentUser.id}`
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "user_subscriptions",
+            filter: `user_id=eq.${currentUser.id}`,
           },
           () => {
-            console.log('Subscription data updated, refreshing');
+            console.log("Subscription data updated, refreshing");
             fetchSubscriptionData();
           }
         )
         .subscribe();
-        
+
       return () => {
         supabase.removeChannel(channel);
       };
@@ -76,30 +83,30 @@ const Subscription: React.FC = () => {
       setIsLoadingSub(false);
     }
   }, [currentUser?.id]);
-  
+
   const fetchSubscriptionData = async () => {
     if (!currentUser?.id) return;
-    
+
     setIsLoadingSub(true);
     try {
       const { data, error } = await supabase
-        .from('user_subscriptions')
-        .select('*')
-        .eq('user_id', currentUser.id)
-        .order('created_at', { ascending: false })
+        .from("user_subscriptions")
+        .select("*")
+        .eq("user_id", currentUser.id)
+        .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching subscription data:', error);
-        toast.error('Failed to load subscription data');
+
+      if (error && error.code !== "PGRST116") {
+        console.error("Error fetching subscription data:", error);
+        toast.error("Failed to load subscription data");
         return;
       }
-      
+
       setSubscriptionData(data || null);
     } catch (error) {
-      console.error('Error fetching subscription data:', error);
-      toast.error('Failed to load subscription data');
+      console.error("Error fetching subscription data:", error);
+      toast.error("Failed to load subscription data");
     } finally {
       setIsLoadingSub(false);
     }
@@ -113,27 +120,36 @@ const Subscription: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-        body: {
-          returnUrl: window.location.origin + '/subscription',
-          planId: "premium"
+      const { data, error } = await supabase.functions.invoke(
+        "create-checkout-session",
+        {
+          body: {
+            returnUrl: window.location.origin + "/subscription",
+            planId: "premium",
+          },
         }
-      });
-      
+      );
+
       if (error) {
-        console.error('Error creating checkout session:', error);
+        console.error("Error creating checkout session:", error);
         throw new Error(`Error: ${error.message}`);
       }
-      
+
       // Redirect to Stripe Checkout
       if (data?.url) {
         window.location.href = data.url;
       } else {
-        toast.error('Failed to initialize payment process: No checkout URL returned');
+        toast.error(
+          "Failed to initialize payment process: No checkout URL returned"
+        );
       }
     } catch (error: any) {
-      console.error('Error creating checkout session:', error);
-      toast.error(`Failed to initialize payment process: ${error.message || 'Unknown error'}`);
+      console.error("Error creating checkout session:", error);
+      toast.error(
+        `Failed to initialize payment process: ${
+          error.message || "Unknown error"
+        }`
+      );
     } finally {
       setIsLoading(false);
     }
@@ -141,12 +157,12 @@ const Subscription: React.FC = () => {
 
   // Format date for display
   const formatDate = (dateString: string) => {
-    if (!dateString) return 'Not available';
+    if (!dateString) return "Not available";
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
@@ -172,7 +188,8 @@ const Subscription: React.FC = () => {
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Subscription Canceled</AlertTitle>
             <AlertDescription>
-              The subscription process was canceled. If you experienced any issues, please try again.
+              The subscription process was canceled. If you experienced any
+              issues, please try again.
             </AlertDescription>
           </Alert>
         )}
@@ -180,7 +197,9 @@ const Subscription: React.FC = () => {
         <div className="flex justify-center py-8">
           <Card className="w-full max-w-md border-game-primary/30">
             <CardHeader className="bg-game-primary/5 border-b border-game-primary/20">
-              <CardTitle className="text-2xl text-center">Premium Plan</CardTitle>
+              <CardTitle className="text-2xl text-center">
+                Premium Plan
+              </CardTitle>
               <CardDescription className="text-center text-lg">
                 $399<span className="text-sm">/month</span>
               </CardDescription>
@@ -198,20 +217,20 @@ const Subscription: React.FC = () => {
               </ul>
             </CardContent>
             <CardFooter>
-              <Button 
-                onClick={handleSubscribe} 
+              <Button
+                onClick={handleSubscribe}
                 className="w-full bg-game-primary hover:bg-game-primary/90"
-                disabled={isLoading || (subscriptionData?.status === 'active')}
+                disabled={isLoading || subscriptionData?.status === "active"}
               >
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Processing
                   </>
-                ) : subscriptionData?.status === 'active' ? (
-                  'Currently Subscribed'
+                ) : subscriptionData?.status === "active" ? (
+                  "Currently Subscribed"
                 ) : (
-                  'Subscribe Now'
+                  "Subscribe Now"
                 )}
               </Button>
             </CardFooter>
@@ -232,15 +251,21 @@ const Subscription: React.FC = () => {
               </div>
               <div className="grid grid-cols-3 items-center border-b pb-3">
                 <dt className="text-muted-foreground">Price</dt>
-                <dd className="col-span-2 font-medium">$399.00 / month</dd>
+                <dd className="col-span-2 font-medium">$300.00 / month</dd>
               </div>
               <div className="grid grid-cols-3 items-center border-b pb-3">
                 <dt className="text-muted-foreground">Status</dt>
                 <dd className="col-span-2">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    subscriptionData.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
-                  }`}>
-                    {subscriptionData.status === 'active' ? 'Active' : subscriptionData.status}
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      subscriptionData.status === "active"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-amber-100 text-amber-800"
+                    }`}
+                  >
+                    {subscriptionData.status === "active"
+                      ? "Active"
+                      : subscriptionData.status}
                   </span>
                 </dd>
               </div>
@@ -250,7 +275,9 @@ const Subscription: React.FC = () => {
               </div>
               <div className="grid grid-cols-3 items-center border-b pb-3">
                 <dt className="text-muted-foreground">Next Payment</dt>
-                <dd className="col-span-2 font-medium">{formatDate(subscriptionData.end_date)}</dd>
+                <dd className="col-span-2 font-medium">
+                  {formatDate(subscriptionData.end_date)}
+                </dd>
               </div>
               <div className="grid grid-cols-3 items-center">
                 <dt className="text-muted-foreground">Payment Method</dt>
@@ -260,12 +287,14 @@ const Subscription: React.FC = () => {
           </div>
         ) : (
           <div className="bg-card rounded-lg border p-6 text-center">
-            <h3 className="text-xl font-semibold mb-4">No Active Subscription</h3>
+            <h3 className="text-xl font-semibold mb-4">
+              No Active Subscription
+            </h3>
             <p className="text-muted-foreground mb-4">
               Subscribe to the Premium plan to access all features and benefits.
             </p>
-            <Button 
-              onClick={handleSubscribe} 
+            <Button
+              onClick={handleSubscribe}
               className="bg-game-primary hover:bg-game-primary/90"
               disabled={isLoading}
             >
@@ -275,7 +304,7 @@ const Subscription: React.FC = () => {
                   Processing
                 </>
               ) : (
-                'Subscribe Now'
+                "Subscribe Now"
               )}
             </Button>
           </div>

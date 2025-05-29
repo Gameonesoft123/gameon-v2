@@ -12,6 +12,7 @@ import {
   IndexFacesCommand as NewIndexFacesCommand,
   SearchFacesByImageCommand as NewSearchFacesByImageCommand,
 } from "npm:@aws-sdk/client-rekognition@3.511.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 // Update CORS headers to explicitly allow localhost
 const corsHeaders = {
   "Access-Control-Allow-Origin": "https://thegameon.net",
@@ -152,11 +153,43 @@ serve(async (req) => {
       try {
         const response = await client.send(command);
         console.log("Registration successful:", response);
+
+        const faceRecord = response.FaceRecords?.[0];
+        const faceId = faceRecord?.Face?.FaceId;
+        const userId = faceRecord?.Face?.ExternalImageId;
+        const faceDetail = faceRecord?.FaceDetail;
+
+        // Setup Supabase client with service role
+        const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+        const supabaseServiceKey =
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+
+        if (!supabaseUrl || !supabaseServiceKey) {
+          throw new Error("Supabase credentials not configured");
+        }
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        const { data: supabaseInsert, error: supabaseError } = await supabase
+          .from("user_face_ids")
+          .insert({
+            user_id: userId,
+            face_id: faceId,
+            face_data: faceDetail,
+          })
+          .select()
+          .single();
+
+        if (supabaseError) {
+          console.error("Supabase insert error:", supabaseError);
+          throw new Error("Failed to insert face data into Supabase");
+        }
+
         return new Response(
           JSON.stringify({
             success: true,
             faceId: response.FaceRecords?.[0]?.Face?.FaceId,
             confidence: response.FaceRecords?.[0]?.Face?.Confidence,
+            fullData: response,
+            supabaseUpdate: supabaseInsert,
           }),
           {
             headers: {
