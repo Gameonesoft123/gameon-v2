@@ -201,7 +201,7 @@ const Subscription: React.FC = () => {
                 Premium Plan
               </CardTitle>
               <CardDescription className="text-center text-lg">
-                $399<span className="text-sm">/month</span>
+                $300<span className="text-sm">/month</span>
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6">

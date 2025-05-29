@@ -104,6 +104,25 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({
               data.faceId || data.bestMatch?.Face?.ExternalImageId
             );
           }
+          const faceRecord = data.fullData.FaceRecords?.[0];
+          const faceId = faceRecord?.Face?.FaceId;
+          const userId = faceRecord?.Face?.ExternalImageId;
+          const faceDetail = faceRecord?.FaceDetail;
+
+          const { data: supabaseInsert, error: supabaseError } = await supabase
+            .from("user_face_ids")
+            .insert({
+              user_id: userId,
+              face_id: faceId,
+              face_data: faceDetail,
+            })
+            .select()
+            .single();
+
+          if (supabaseError) {
+            console.error("Supabase insert error:", supabaseError);
+            throw new Error("Failed to insert face data into Supabase");
+          }
         } else {
           throw new Error(data.error || "Face recognition failed");
         }

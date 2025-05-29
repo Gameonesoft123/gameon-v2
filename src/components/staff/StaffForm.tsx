@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -13,7 +13,7 @@ import {
   FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from "@/integrations/supabase/client";
 import { getStoreContext } from "@/utils/storeContext";
 
 const formSchema = z.object({
@@ -70,36 +70,30 @@ export function StaffForm({ onSuccess, onCancel }: StaffFormProps) {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       const storeId = await getStoreContext();
-      
+
       if (!storeId) {
         return; // Error already handled in getStoreContext
       }
 
-      const hashedPassword = `hashed_${values.password}`;
-      
-      const { data, error } = await supabase
-        .from('staff')
-        .insert({
-          first_name: values.firstName,
-          last_name: values.lastName,
-          email: values.email,
-          phone_number: values.phoneNumber,
-          role: values.role,
-          username: values.username,
-          password_hash: hashedPassword,
-          store_id: storeId
-        })
-        .select();
-        
+      // Call the Supabase Edge Function
+      const { data, error } = await supabase.functions.invoke("create-staff", {
+        body: {
+          ...values,
+          storeId,
+        },
+      });
+
       if (error) throw error;
-      
+
       toast.success("Staff member added successfully");
       form.reset();
-      
+
       if (onSuccess) onSuccess();
     } catch (error: any) {
-      console.error('Error adding staff member:', error);
-      toast.error(`Failed to add staff member: ${error.message || "Please try again"}`);
+      console.error("Error adding staff member:", error);
+      toast.error(
+        `Failed to add staff member: ${error.message || "Please try again"}`
+      );
     }
   }
 
@@ -120,7 +114,7 @@ export function StaffForm({ onSuccess, onCancel }: StaffFormProps) {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="lastName"
@@ -170,10 +164,7 @@ export function StaffForm({ onSuccess, onCancel }: StaffFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Role</FormLabel>
-              <Select 
-                onValueChange={field.onChange} 
-                defaultValue={field.value}
-              >
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select staff role" />
@@ -203,9 +194,7 @@ export function StaffForm({ onSuccess, onCancel }: StaffFormProps) {
                 <FormControl>
                   <Input placeholder="johndoe" {...field} />
                 </FormControl>
-                <FormDescription>
-                  For system login purposes.
-                </FormDescription>
+                <FormDescription>For system login purposes.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}

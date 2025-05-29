@@ -141,6 +141,37 @@ serve(async (req) => {
     let response;
     if (action === "register") {
       console.log("Starting registration...");
+
+      // First, search for similar faces
+      const searchCommand = new NewSearchFacesByImageCommand({
+        CollectionId: COLLECTION_ID,
+        Image: {
+          Bytes: imageBytes,
+        },
+        MaxFaces: 1,
+        FaceMatchThreshold: 90, // Adjust this threshold as needed (90% similarity)
+      });
+
+      const searchResponse = await client.send(searchCommand);
+
+      // If similar face found, return error or existing face info
+      if (searchResponse.FaceMatches && searchResponse.FaceMatches.length > 0) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: "Similar face already exists",
+            existingFace: searchResponse.FaceMatches[0],
+          }),
+          {
+            headers: {
+              ...corsHeaders,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+      }
+
+      // If no similar face found, proceed with registration
       const command = new NewIndexFacesCommand({
         CollectionId: COLLECTION_ID,
         Image: {
@@ -150,38 +181,9 @@ serve(async (req) => {
         MaxFaces: 1,
         QualityFilter: "AUTO",
       });
+
       try {
         const response = await client.send(command);
-        console.log("Registration successful:", response);
-
-        const faceRecord = response.FaceRecords?.[0];
-        const faceId = faceRecord?.Face?.FaceId;
-        const userId = faceRecord?.Face?.ExternalImageId;
-        const faceDetail = faceRecord?.FaceDetail;
-
-        // Setup Supabase client with service role
-        const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-        const supabaseServiceKey =
-          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-
-        if (!supabaseUrl || !supabaseServiceKey) {
-          throw new Error("Supabase credentials not configured");
-        }
-        const supabase = createClient(supabaseUrl, supabaseServiceKey);
-        const { data: supabaseInsert, error: supabaseError } = await supabase
-          .from("user_face_ids")
-          .insert({
-            user_id: userId,
-            face_id: faceId,
-            face_data: faceDetail,
-          })
-          .select()
-          .single();
-
-        if (supabaseError) {
-          console.error("Supabase insert error:", supabaseError);
-          throw new Error("Failed to insert face data into Supabase");
-        }
 
         return new Response(
           JSON.stringify({
@@ -189,7 +191,6 @@ serve(async (req) => {
             faceId: response.FaceRecords?.[0]?.Face?.FaceId,
             confidence: response.FaceRecords?.[0]?.Face?.Confidence,
             fullData: response,
-            supabaseUpdate: supabaseInsert,
           }),
           {
             headers: {
