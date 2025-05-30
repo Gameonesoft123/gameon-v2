@@ -1,5 +1,4 @@
-//i changed this
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 
 export const useCamera = () => {
@@ -9,20 +8,8 @@ export const useCamera = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const cleanup = useCallback(() => {
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
-      setStream(null);
-    }
-    setCapturedImage(null);
-    setCameraError(false);
-  }, [stream]);
-
-  const startCamera = useCallback(async () => {
+  const startCamera = async () => {
     try {
-      // Clean up existing stream first
-      cleanup();
-
       setCameraError(false);
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -34,22 +21,20 @@ export const useCamera = () => {
 
       setCapturedImage(null);
       setStream(mediaStream);
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
-
       return true;
     } catch (error) {
       console.error("Error accessing camera:", error);
       setCameraError(true);
       return false;
     }
-  }, [cleanup]);
+  };
 
-  const stopCamera = useCallback(() => {
-    cleanup();
-  }, [cleanup]);
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
+      setStream(null);
+    }
+  };
 
   const captureImage = (): string | null => {
     if (videoRef.current && canvasRef.current) {
@@ -78,30 +63,28 @@ export const useCamera = () => {
     return null;
   };
 
-  // Initialize camera on mount
   useEffect(() => {
+    // Don't block component rendering if camera fails
     let mounted = true;
 
     const initCamera = async () => {
       try {
-        if (mounted) {
-          await startCamera();
-        }
+        await startCamera();
       } catch (err) {
         console.error("Camera initialization error:", err);
         if (mounted) setCameraError(true);
       }
     };
 
+    // Initialize camera without awaiting
     initCamera();
 
     return () => {
       mounted = false;
-      cleanup();
+      stopCamera();
     };
-  }, [startCamera, cleanup]);
+  }, []);
 
-  // Handle stream changes
   useEffect(() => {
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream;
@@ -117,6 +100,5 @@ export const useCamera = () => {
     startCamera,
     stopCamera,
     captureImage,
-    cleanup,
   };
 };
