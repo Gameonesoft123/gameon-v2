@@ -29,6 +29,7 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({
     canvasRef,
     startCamera,
     captureImage,
+    cleanup,
   } = useCamera();
 
   const handleError = (message: string, error?: any) => {
@@ -164,6 +165,7 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({
       }
       sendToFaceRecognition(imageDataUrl);
     } else {
+      cleanup();
       setCaptureError(
         "Failed to capture image. Camera might not be active or permissions denied."
       );

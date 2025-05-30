@@ -1,33 +1,47 @@
-import { useState, useEffect, useRef } from "react";
-import { toast } from "sonner";
+import { useState, useRef, useCallback, useEffect } from "react";
 
 export const useCamera = () => {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [cameraError, setCameraError] = useState<boolean>(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const startCamera = async () => {
+  const cleanup = useCallback(() => {
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
+      setStream(null);
+    }
+    setCapturedImage(null);
+    setCameraError(null);
+  }, [stream]);
+
+  const startCamera = useCallback(async () => {
     try {
-      setCameraError(false);
+      // Clean up existing stream first
+      cleanup();
+
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: "user",
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
+        video: { facingMode: "user" },
       });
 
-      setCapturedImage(null);
       setStream(mediaStream);
-      return true;
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+      setCameraError(null);
     } catch (error) {
-      console.error("Error accessing camera:", error);
-      setCameraError(true);
-      return false;
+      console.error("Camera access error:", error);
+      setCameraError("Failed to access camera");
     }
-  };
+  }, [cleanup]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      cleanup();
+    };
+  }, [cleanup]);
 
   const stopCamera = () => {
     if (stream) {
@@ -98,7 +112,7 @@ export const useCamera = () => {
     videoRef,
     canvasRef,
     startCamera,
-    stopCamera,
     captureImage,
+    cleanup,
   };
 };
