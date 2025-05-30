@@ -35,16 +35,6 @@ interface Customer {
   check_in_id?: string;
 }
 
-// First, let's define an interface for the customer_face_ids table structure
-interface CustomerFaceId {
-  id: number; // bigint in DB = number in TS
-  created_at: string;
-  customer_id: string | null; // uuid in DB = string in TS
-  face_id: string | null;
-  face_data: unknown | null; // jsonb in DB = any in TS
-  store_id: string | null; // uuid in DB = string in TS
-}
-
 const Customers: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -125,52 +115,41 @@ const Customers: React.FC = () => {
         return;
       }
 
-      // Get the face ID record with proper typing
-      const { data: faceIdRecord, error: faceIdError } = await supabase
-        .from("customer_face_ids")
-        .select("customer_id")
+      const { data, error } = await supabase
+        .from("customers")
+        .select("*")
         .eq("face_id", faceId)
+        .eq("store_id", currentUser.store_id) // Add store_id filter
         .single();
 
-      if (faceIdError) {
-        if (faceIdError.code === "PGRST116") {
+      if (error) {
+        if (error.code === "PGRST116") {
+          // No match found
           setMatchedCustomer(null);
           return;
         }
-        throw faceIdError;
+        throw error;
       }
 
-      if (faceIdRecord?.customer_id) {
-        // Get the customer data
-        const { data: customerData, error: customerError } = await supabase
-          .from("customers")
-          .select("*")
-          .eq("id", faceIdRecord.customer_id)
-          .single();
+      if (data) {
+        // Get check-in status
+        const { data: checkIn, error: checkInError } = await supabase
+          .from("customer_check_ins")
+          .select("id")
+          .eq("customer_id", data.id)
+          .eq("store_id", currentUser.store_id)
+          .is("check_out_time", null)
+          .maybeSingle();
 
-        if (customerError) throw customerError;
-
-        if (customerData) {
-          // Get check-in status
-          const { data: checkIn, error: checkInError } = await supabase
-            .from("customer_check_ins")
-            .select("id")
-            .eq("customer_id", customerData.id)
-            .eq("store_id", currentUser.store_id)
-            .is("check_out_time", null)
-            .maybeSingle();
-
-          if (checkInError) {
-            console.error("Error checking check-in status:", checkInError);
-          }
-
-          // Now we can safely cast the combined data to Customer type
-          setMatchedCustomer({
-            ...customerData,
-            is_checked_in: !!checkIn,
-            check_in_id: checkIn?.id,
-          } as Customer);
+        if (checkInError) {
+          console.error("Error checking check-in status:", checkInError);
         }
+
+        setMatchedCustomer({
+          ...data,
+          is_checked_in: !!checkIn,
+          check_in_id: checkIn?.id,
+        } as Customer);
       }
     } catch (error) {
       console.error("Error searching customer by face:", error);

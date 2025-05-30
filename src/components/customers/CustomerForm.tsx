@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import FaceCapture from '@/components/customers/faceid/FaceCapture';
+import FaceCapture from "@/components/customers/faceid/FaceCapture";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/auth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -54,14 +54,23 @@ type CustomerFormProps = {
   createCustomer?: (data: any) => Promise<{ success: boolean; error?: any }>;
 };
 
-export function CustomerForm({ onSuccess, onCancel, createCustomer }: CustomerFormProps) {
-  const [currentStep, setCurrentStep] = useState<'details' | 'faceCapture'>('details');
+export function CustomerForm({
+  onSuccess,
+  onCancel,
+  createCustomer,
+}: CustomerFormProps) {
+  const [currentStep, setCurrentStep] = useState<"details" | "faceCapture">(
+    "details"
+  );
   const [faceId, setFaceId] = useState<string | null>(null);
   const { currentUser } = useAuth();
   const [hasStoreId, setHasStoreId] = useState<boolean | null>(null);
 
   // Generate a stable ID for the potential new customer for face registration
-  const pendingCustomerIdForFaceReg = useMemo(() => crypto.randomUUID(), [currentStep]);
+  const pendingCustomerIdForFaceReg = useMemo(
+    () => crypto.randomUUID(),
+    [currentStep]
+  );
 
   useEffect(() => {
     setHasStoreId(!!currentUser?.store_id);
@@ -83,7 +92,7 @@ export function CustomerForm({ onSuccess, onCancel, createCustomer }: CustomerFo
   const resetForm = () => {
     form.reset();
     setFaceId(null);
-    setCurrentStep('details');
+    setCurrentStep("details");
     form.clearErrors();
   };
 
@@ -98,16 +107,18 @@ export function CustomerForm({ onSuccess, onCancel, createCustomer }: CustomerFo
       toast.error("Failed to register face ID with Rekognition.");
       return;
     }
-    
+
     if (detectedExternalImageId !== pendingCustomerIdForFaceReg) {
       toast.error("Face ID mismatch during registration. Please try again.");
-      console.error(`Received ${detectedExternalImageId}, expected ${pendingCustomerIdForFaceReg}`);
-      setCurrentStep('details'); // Go back to details, user might need to restart face capture
+      console.error(
+        `Received ${detectedExternalImageId}, expected ${pendingCustomerIdForFaceReg}`
+      );
+      setCurrentStep("details"); // Go back to details, user might need to restart face capture
       return;
     }
 
     setFaceId(detectedExternalImageId); // Store the confirmed ID
-    console.log('Face ID registered for customer:', detectedExternalImageId);
+    console.log("Face ID registered for customer:", detectedExternalImageId);
     toast.success("Face ID registered. Submitting customer details...");
 
     // Automatically submit the form with all data including the new faceId
@@ -115,21 +126,25 @@ export function CustomerForm({ onSuccess, onCancel, createCustomer }: CustomerFo
     try {
       // Use the stored faceId (which is pendingCustomerIdForFaceReg)
       const customerPayload = {
+        id: pendingCustomerIdForFaceReg,
         first_name: formData.firstName,
         last_name: formData.lastName,
         phone: formData.phoneNumber,
         email: formData.email,
         rating: parseInt(formData.rating || "3"),
         notes: formData.notes,
-        face_id: detectedExternalImageId // Use the ID from Rekognition
+        face_id: detectedExternalImageId, // Use the ID from Rekognition
       };
 
       if (createCustomer) {
         const result = await createCustomer(customerPayload);
-        if (!result.success) throw new Error(result.error?.message || "Failed to create customer via prop.");
+        if (!result.success)
+          throw new Error(
+            result.error?.message || "Failed to create customer via prop."
+          );
       } else {
         const { error } = await supabase
-          .from('customers')
+          .from("customers")
           .insert(customerPayload)
           .select();
         if (error) throw error;
@@ -138,10 +153,12 @@ export function CustomerForm({ onSuccess, onCancel, createCustomer }: CustomerFo
       toast.success("Customer created successfully with Face ID!");
       resetForm();
       if (onSuccess) onSuccess();
-      setCurrentStep('details'); // Reset step
+      setCurrentStep("details"); // Reset step
     } catch (error: any) {
-      console.error('Error creating customer after face detection:', error);
-      toast.error(`Failed to create customer: ${error.message || "Please try again."}`);
+      console.error("Error creating customer after face detection:", error);
+      toast.error(
+        `Failed to create customer: ${error.message || "Please try again."}`
+      );
       // Optionally, allow user to retry form submission or clear faceId
       // setFaceId(null); // Clear faceId if submission failed
       // setCurrentStep('details');
@@ -150,14 +167,16 @@ export function CustomerForm({ onSuccess, onCancel, createCustomer }: CustomerFo
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!hasStoreId) {
-      toast.error("You don't have a store assigned. Please update your profile or contact support.");
+      toast.error(
+        "You don't have a store assigned. Please update your profile or contact support."
+      );
       return;
     }
 
-    if (values.enableFaceId && !faceId && currentStep === 'details') {
+    if (values.enableFaceId && !faceId && currentStep === "details") {
       // Transition to face capture step.
       // pendingCustomerIdForFaceReg is already generated/updated by useMemo.
-      setCurrentStep('faceCapture');
+      setCurrentStep("faceCapture");
       return;
     }
 
@@ -171,34 +190,43 @@ export function CustomerForm({ onSuccess, onCancel, createCustomer }: CustomerFo
         email: values.email,
         rating: parseInt(values.rating || "3"),
         notes: values.notes,
-        face_id: values.enableFaceId ? faceId : null // Use already registered faceId if available and enabled
+        face_id: values.enableFaceId ? faceId : null, // Use already registered faceId if available and enabled
       };
 
       if (createCustomer) {
         const result = await createCustomer(customerPayload);
-        if (!result.success) throw new Error(result.error?.message || "Failed to create customer via prop.");
+        if (!result.success)
+          throw new Error(
+            result.error?.message || "Failed to create customer via prop."
+          );
       } else {
         const { error } = await supabase
-          .from('customers')
+          .from("customers")
           .insert(customerPayload)
           .select();
         if (error) throw error;
       }
 
-      toast.success(values.enableFaceId && faceId ? "Customer created successfully with Face ID!" : "Customer created successfully!");
+      toast.success(
+        values.enableFaceId && faceId
+          ? "Customer created successfully with Face ID!"
+          : "Customer created successfully!"
+      );
       resetForm();
       if (onSuccess) onSuccess();
     } catch (error: any) {
-      console.error('Error creating customer:', error);
-      toast.error(`Failed to create customer: ${error.message || "Please try again."}`);
+      console.error("Error creating customer:", error);
+      toast.error(
+        `Failed to create customer: ${error.message || "Please try again."}`
+      );
     }
   }
 
   const handleCancel = () => {
-    if (currentStep === 'faceCapture') {
-      setCurrentStep('details');
+    if (currentStep === "faceCapture") {
+      setCurrentStep("details");
       // Optionally clear faceId if user cancels from face capture
-      // setFaceId(null); 
+      // setFaceId(null);
       // form.setValue('enableFaceId', false); // Or keep it enabled as per user's last choice
     } else if (onCancel) {
       resetForm(); // Also reset form on main cancel
@@ -212,13 +240,13 @@ export function CustomerForm({ onSuccess, onCancel, createCustomer }: CustomerFo
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>Store Not Assigned</AlertTitle>
         <AlertDescription>
-          Your user account doesn't have a store assigned. Please update your profile with a store
-          or contact support to add customers.
+          Your user account doesn't have a store assigned. Please update your
+          profile with a store or contact support to add customers.
         </AlertDescription>
         <div className="mt-4">
           <Button
             variant="outline"
-            onClick={() => window.location.href = '/profile'}
+            onClick={() => (window.location.href = "/profile")}
           >
             Go to Profile
           </Button>
@@ -230,11 +258,14 @@ export function CustomerForm({ onSuccess, onCancel, createCustomer }: CustomerFo
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {currentStep === 'faceCapture' ? (
+        {currentStep === "faceCapture" ? (
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Face ID Registration for {form.getValues('firstName')}</h3>
+            <h3 className="text-lg font-medium">
+              Face ID Registration for {form.getValues("firstName")}
+            </h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Please ask the customer to look at the camera to register their Face ID.
+              Please ask the customer to look at the camera to register their
+              Face ID.
             </p>
             <FaceCapture
               mode="register"
@@ -243,11 +274,11 @@ export function CustomerForm({ onSuccess, onCancel, createCustomer }: CustomerFo
               customerIdForRegistration={pendingCustomerIdForFaceReg} // Pass the generated ID
             />
             <div className="flex justify-between mt-4">
-               <Button
+              <Button
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  setCurrentStep('details'); // Go back to details
+                  setCurrentStep("details"); // Go back to details
                 }}
               >
                 Back to Details
@@ -256,10 +287,10 @@ export function CustomerForm({ onSuccess, onCancel, createCustomer }: CustomerFo
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  form.setValue('enableFaceId', false);
-                  setCurrentStep('details');
+                  form.setValue("enableFaceId", false);
+                  setCurrentStep("details");
                   // Manually trigger form submission without Face ID
-                  onSubmit(form.getValues()); 
+                  onSubmit(form.getValues());
                 }}
               >
                 Skip Face ID & Save
@@ -271,7 +302,8 @@ export function CustomerForm({ onSuccess, onCancel, createCustomer }: CustomerFo
             {faceId && (
               <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-md border border-green-200 dark:border-green-900 mb-4">
                 <p className="text-sm text-green-800 dark:text-green-400 font-medium">
-                  Face ID ({faceId.substring(0,10)}...) registered. Complete the form to save.
+                  Face ID ({faceId.substring(0, 10)}...) registered. Complete
+                  the form to save.
                 </p>
               </div>
             )}
@@ -410,14 +442,21 @@ export function CustomerForm({ onSuccess, onCancel, createCustomer }: CustomerFo
             />
 
             <div className="flex flex-col sm:flex-row gap-3 sm:justify-between">
-               {onCancel && (
-                <Button type="button" variant="outline" onClick={handleCancel} className="w-full sm:w-auto order-2 sm:order-1">
+              {onCancel && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCancel}
+                  className="w-full sm:w-auto order-2 sm:order-1"
+                >
                   Cancel
                 </Button>
               )}
               <div className="w-full sm:w-auto order-1 sm:order-2">
                 <Button type="submit" className="w-full">
-                  {form.getValues('enableFaceId') && !faceId ? "Continue to Face ID" : "Save Customer"}
+                  {form.getValues("enableFaceId") && !faceId
+                    ? "Continue to Face ID"
+                    : "Save Customer"}
                 </Button>
               </div>
             </div>
