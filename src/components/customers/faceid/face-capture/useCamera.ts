@@ -1,48 +1,40 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 
 export const useCamera = () => {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [cameraError, setCameraError] = useState<boolean>(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const cleanup = useCallback(() => {
+  const startCamera = async () => {
+    try {
+      setCameraError(false);
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: "user",
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+      });
+
+      setCapturedImage(null);
+      setStream(mediaStream);
+      return true;
+    } catch (error) {
+      console.error("Error accessing camera:", error);
+      setCameraError(true);
+      return false;
+    }
+  };
+
+  const stopCamera = () => {
     if (stream) {
       stream.getTracks().forEach((track) => track.stop());
       setStream(null);
     }
-    setCapturedImage(null);
-    setCameraError(null);
-  }, [stream]);
-
-  const startCamera = useCallback(async () => {
-    try {
-      // Clean up existing stream first
-      cleanup();
-
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user" },
-      });
-
-      setStream(mediaStream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
-      setCameraError(null);
-    } catch (error) {
-      console.error("Camera access error:", error);
-      setCameraError("Failed to access camera");
-    }
-  }, [cleanup]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      cleanup();
-    };
-  }, [cleanup]);
+  };
 
   const captureImage = (): string | null => {
     if (videoRef.current && canvasRef.current) {
@@ -63,7 +55,7 @@ export const useCamera = () => {
         setCapturedImage(imageDataUrl);
 
         // Stop the camera after capturing
-        cleanup();
+        stopCamera();
 
         return imageDataUrl;
       }
@@ -80,7 +72,7 @@ export const useCamera = () => {
         await startCamera();
       } catch (err) {
         console.error("Camera initialization error:", err);
-        if (mounted) setCameraError("Failed to initialize camera");
+        if (mounted) setCameraError(true);
       }
     };
 
@@ -89,9 +81,9 @@ export const useCamera = () => {
 
     return () => {
       mounted = false;
-      cleanup();
+      stopCamera();
     };
-  }, [startCamera, cleanup]);
+  }, []);
 
   useEffect(() => {
     if (videoRef.current && stream) {
@@ -106,7 +98,7 @@ export const useCamera = () => {
     videoRef,
     canvasRef,
     startCamera,
+    stopCamera,
     captureImage,
-    cleanup,
   };
 };
