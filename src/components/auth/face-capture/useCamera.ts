@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+//i changed this
+import { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "sonner";
 
 export const useCamera = () => {
@@ -8,34 +9,47 @@ export const useCamera = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const startCamera = async () => {
+  const cleanup = useCallback(() => {
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
+      setStream(null);
+    }
+    setCapturedImage(null);
+    setCameraError(false);
+  }, [stream]);
+
+  const startCamera = useCallback(async () => {
     try {
+      // Clean up existing stream first
+      cleanup();
+
       setCameraError(false);
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: 'user',
+          facingMode: "user",
           width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
+          height: { ideal: 720 },
+        },
       });
-
 
       setCapturedImage(null);
       setStream(mediaStream);
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+
       return true;
     } catch (error) {
-      console.error('Error accessing camera:', error);
+      console.error("Error accessing camera:", error);
       setCameraError(true);
       return false;
     }
-  };
+  }, [cleanup]);
 
-  const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
-  };
+  const stopCamera = useCallback(() => {
+    cleanup();
+  }, [cleanup]);
 
   const captureImage = (): string | null => {
     if (videoRef.current && canvasRef.current) {
@@ -47,12 +61,12 @@ export const useCamera = () => {
       canvas.height = video.videoHeight;
 
       // Draw current video frame to canvas
-      const context = canvas.getContext('2d');
+      const context = canvas.getContext("2d");
       if (context) {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
         // Convert canvas to data URL
-        const imageDataUrl = canvas.toDataURL('image/jpeg');
+        const imageDataUrl = canvas.toDataURL("image/jpeg");
         setCapturedImage(imageDataUrl);
 
         // Stop the camera after capturing
@@ -64,28 +78,30 @@ export const useCamera = () => {
     return null;
   };
 
+  // Initialize camera on mount
   useEffect(() => {
-    // Don't block component rendering if camera fails
     let mounted = true;
 
     const initCamera = async () => {
       try {
-        await startCamera();
+        if (mounted) {
+          await startCamera();
+        }
       } catch (err) {
         console.error("Camera initialization error:", err);
         if (mounted) setCameraError(true);
       }
     };
 
-    // Initialize camera without awaiting
     initCamera();
 
     return () => {
       mounted = false;
-      stopCamera();
+      cleanup();
     };
-  }, []);
+  }, [startCamera, cleanup]);
 
+  // Handle stream changes
   useEffect(() => {
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream;
@@ -100,6 +116,7 @@ export const useCamera = () => {
     canvasRef,
     startCamera,
     stopCamera,
-    captureImage
+    captureImage,
+    cleanup,
   };
 };

@@ -29,6 +29,7 @@ import { useAuth } from "@/contexts/auth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { getStoreContext } from "@/utils/storeContext";
+import { useCamera } from "./faceid/face-capture/useCamera";
 
 const formSchema = z.object({
   firstName: z.string().min(2, {
@@ -65,6 +66,7 @@ export function CustomerForm({
   const [faceId, setFaceId] = useState<string | null>(null);
   const { currentUser } = useAuth();
   const [hasStoreId, setHasStoreId] = useState<boolean | null>(null);
+  const { cleanup } = useCamera();
 
   // Generate a stable ID for the potential new customer for face registration
   const pendingCustomerIdForFaceReg = useMemo(
@@ -279,6 +281,7 @@ export function CustomerForm({
                 variant="outline"
                 onClick={() => {
                   setCurrentStep("details"); // Go back to details
+                  cleanup();
                 }}
               >
                 Back to Details
