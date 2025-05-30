@@ -269,7 +269,7 @@ export function CustomerForm({
             </p>
             <FaceCapture
               mode="register"
-              onCapture={handleFaceCapture} // Optional
+              // onCapture={handleFaceCapture} // Optional
               onFaceDetected={handleFaceDetected}
               customerIdForRegistration={pendingCustomerIdForFaceReg} // Pass the generated ID
             />
