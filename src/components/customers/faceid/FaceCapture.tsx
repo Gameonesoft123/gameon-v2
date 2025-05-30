@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CapturePreview from "./face-capture/CapturePreview";
@@ -20,7 +20,6 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [captureError, setCaptureError] = useState<string | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
 
   const {
     stream,
@@ -30,39 +29,7 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({
     canvasRef,
     startCamera,
     captureImage,
-    cleanup,
   } = useCamera();
-
-  useEffect(() => {
-    let mounted = true;
-
-    const initialize = async () => {
-      try {
-        if (!isInitialized && mounted) {
-          await startCamera();
-          setIsInitialized(true);
-        }
-      } catch (error) {
-        console.error("Failed to initialize camera:", error);
-      }
-    };
-
-    initialize();
-
-    return () => {
-      mounted = false;
-      cleanup();
-      setIsInitialized(false);
-    };
-  }, [startCamera, cleanup, isInitialized]);
-
-  useEffect(() => {
-    setCaptureError(null);
-    setIsProcessing(false);
-    if (!isInitialized) {
-      startCamera();
-    }
-  }, [mode, startCamera, isInitialized]);
 
   const handleError = (message: string, error?: any) => {
     console.error(`FaceCapture (Customer): ${message}`, error || "");
@@ -179,16 +146,14 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({
       SUPABASE_URL,
       SUPABASE_PUBLISHABLE_KEY,
     ]
-  );
+  ); // Added SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY to dependencies
 
-  const handleRetake = useCallback(() => {
+  const handleRetake = () => {
     console.log("FaceCapture (Customer): Retake initiated.");
     setCaptureError(null);
-    setIsProcessing(false);
-    if (!stream) {
-      startCamera();
-    }
-  }, [stream, startCamera]);
+    setIsProcessing(false); // Ensure processing is false on retake
+    startCamera();
+  };
 
   const handleCapture = () => {
     console.log("FaceCapture (Customer): Capture initiated.");
@@ -238,11 +203,12 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({
           </div>
         )}
 
-        {isProcessing && !captureError && (
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground px-4 py-2 rounded-full text-sm">
-            Processing...
-          </div>
-        )}
+        {isProcessing &&
+          !captureError && ( // Show processing only if no error is displayed
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground px-4 py-2 rounded-full text-sm">
+              Processing...
+            </div>
+          )}
       </div>
 
       <div className="flex gap-2">
@@ -253,10 +219,13 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({
           onCapture={handleCapture}
           onRetake={handleRetake}
           mode={mode}
-          isFaceDetected={true}
+          isFaceDetected={true} // Customer flow doesn't use local detection state from face-api.js
         />
       </div>
-      <ProcessingMessage isProcessing={isProcessing} mode={mode} />
+      <ProcessingMessage // This component might be redundant if errors/processing shown above
+        isProcessing={isProcessing}
+        mode={mode}
+      />
     </div>
   );
 };
