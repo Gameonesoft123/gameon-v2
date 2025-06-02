@@ -108,7 +108,10 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({
           throw new Error(errorMsg);
         }
 
-        const ourApplicationId = result.externalImageId || result.customerId;
+        const ourApplicationId =
+          result.externalImageId ||
+          result.customerId ||
+          result.matches?.[0]?.Face?.ExternalImageId;
         if (ourApplicationId) {
           console.log(`Customer FaceCapture: Success. ID: ${ourApplicationId}`);
           if (onFaceDetected) {
